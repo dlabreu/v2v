@@ -1,0 +1,49 @@
+---
+- name: Batch disk format conversion with qemu-img
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    in_dir: "{{ lookup('env', 'IN') | default('/input', true) }}"
+    out_dir: "{{ lookup('env', 'OUT') | default('/output', true) }}"
+    input_ext: "{{ lookup('env', 'INPUT_EXT') | default('vhdx', true) }}"
+    output_ext: "{{ lookup('env', 'OUTPUT_EXT') | default('qcow2', true) }}"
+    input_format: "{{ lookup('env', 'INPUT_FORMAT') | default('raw', true) }}"
+    output_format: "{{ lookup('env', 'OUTPUT_FORMAT') | default('qcow2', true) }}"
+    extra_args: "{{ lookup('env', 'EXTRA_ARGS') | default('', true) }}"
+
+  tasks:
+    - name: Find input files
+      ansible.builtin.find:
+        paths: "{{ in_dir }}"
+        patterns: "{{ '*.' + input_ext }}"
+        recurse: true
+      register: found_files
+
+    - name: Show files found
+      ansible.builtin.debug:
+        var: found_files.files | map(attribute='path') | list
+
+
+    - name: Debug output file name
+      ansible.builtin.debug:
+        msg: "{{ item.path | regex_replace('^' ~ in_dir ~ '/', '') | regex_replace('\\.' ~ input_ext ~ '$', '.' ~ output_ext) }}"
+      loop: "{{ found_files.files }}"
+        
+
+ #   - name: Convert each disk with qemu-img
+ #     ansible.builtin.command: >
+ #      qemu-img convert -f {{ input_format }} -O {{ output_format }}
+ #       {{ extra_args }}
+ #       "{{ item.path }}"
+ #       "{{ out_dir }}/{{ item.path | regex_replace('^' ~ in_dir ~ '/', '') | regex_replace('\\.' ~ input_ext ~ '$', '.' ~ output_ext) }}"
+ #     loop: "{{ found_files.files }}"
+
+    - name: Convert each disk with qemu-img
+      ansible.builtin.command: >
+       qemu-img convert -f {{ input_format }} -O {{ output_format }}
+        {{ extra_args }}
+         "{{ item.path }}"
+         "{{ out_dir }}/{{ item.path | regex_replace('^' ~ in_dir ~ '/', '') | replace('.' ~ input_ext, '.' ~ output_ext) }}"
+      loop: "{{ found_files.files }}"
+
