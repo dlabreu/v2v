@@ -1,0 +1,31 @@
+---
+- name: Copy VM disk locally on Windows host using win_copy
+  hosts: hyperv_hosts
+  gather_facts: false
+
+  vars_prompt:
+      - name: vm_name
+        prompt: "Enter the name of the VM whose disk you want to copy"
+        private: no
+
+      - name: base_url
+        prompt: "Enter the base URL of the IIS server"
+        private: no
+
+  tasks:
+      - name: Get VM disk path
+        win_shell: |
+            (Get-VMHardDiskDrive -VMName "{{ vm_name }}").Path
+        register: vm_disk_path
+
+      - name: Copy VM disk locally using win_copy
+        ansible.windows.win_copy:
+            src: "{{ vm_disk_path.stdout_lines[0] }}"
+            dest: "C:\\vms\\clone\\{{ vm_name }}.vhdx"
+            remote_src: true
+
+      - name: Download VM disk via HTTP
+        ansible.builtin.get_url:
+            url: "{{ base_url }}/{{ vm_name }}.vhdx"
+            dest: "./downloads/{{ vm_name }}.vhdx"
+            mode: "0644"
