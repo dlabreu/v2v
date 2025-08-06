@@ -1,0 +1,82 @@
+---
+- name: Upload VM disk to MinIO using AWS CLI (temporary install)
+  hosts: hyperv_hosts
+  gather_facts: false
+
+  vars_prompt:
+      - name: vm_name
+        prompt: "Enter the name of the VM to upload"
+        private: no
+      - name: minio_endpoint
+        prompt: "Enter MinIO endpoint URL (e.g., http://minio.local:9000)"
+        private: no
+      - name: minio_bucket
+        prompt: "Enter MinIO bucket name"
+        private: no
+      - name: minio_access_key
+        prompt: "Enter MinIO Access Key"
+        private: yes
+      - name: minio_secret_key
+        prompt: "Enter MinIO Secret Key"
+        private: yes
+
+  tasks:
+      - name: Get VM disk path
+        win_shell: |
+            (Get-VMHardDiskDrive -VMName "{{ vm_name }}").Path
+        register: vm_disk_path
+
+      - name: Download AWS CLI combined setup
+        win_get_url:
+            url: https://s3.amazonaws.com/aws-cli/AWSCLISetup.exe
+            dest: C:\Windows\Temp\AWSCLISetup.exe
+
+      - name: Install AWS CLI
+        win_shell: |
+            Start-Process "C:\Windows\Temp\AWSCLISetup.exe" -ArgumentList "/quiet" -Wait
+
+      - name: Wait for AWS CLI to be available
+        win_shell: |
+            while (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+              Start-Sleep -Seconds 2
+            }
+        retries: 30
+        delay: 2
+        register: aws_check
+        until: aws_check.rc == 0
+
+      - name: Find AWS CLI full path
+        win_shell: |
+            (Get-Command aws).Source
+        register: aws_cli_path
+        tags: fix
+
+      - name: Debug AWS CLI path
+        debug:
+            var: aws_cli_path
+        tags: fix
+
+      - name: Upload VM disk to MinIO
+        win_shell: |
+            & "{{ aws_cli_path.stdout_lines[0] }}" --endpoint-url {{ minio_endpoint }} s3 cp "{{ vm_disk_path.stdout_lines[0] }}" s3://{{ minio_bucket }}/{{ vm_name }}.vhdx --no-verify-ssl --checksum-algorithm CRC32
+        environment:
+            AWS_ACCESS_KEY_ID: "{{ minio_access_key }}"
+            AWS_SECRET_ACCESS_KEY: "{{ minio_secret_key }}"
+
+      - name: Get AWS CLI Product ID
+        ansible.windows.win_shell: |
+            (Get-WmiObject Win32_Product | Where-Object { $_.Name -like "AWS Command Line Interface*" }).IdentifyingNumber
+        register: awscli_productid
+        changed_when: false
+
+      - name: Uninstall AWS CLI
+        ansible.windows.win_package:
+            product_id: "{{ awscli_productid.stdout_lines[0] }}"
+            state: absent
+        when: awscli_productid.stdout_lines | length > 0
+        ignore_errors: true
+
+      - name: Remove AWS CLI installer
+        win_file:
+            path: C:\Windows\Temp\AWSCLISetup.exe
+            state: absent

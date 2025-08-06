@@ -1,0 +1,57 @@
+---
+- name: Upload VM disk to MinIO using mc.exe (temporary install)
+  hosts: hyperv_hosts
+  gather_facts: false
+
+  vars_prompt:
+      - name: vm_name
+        prompt: "Enter the name of the VM to upload"
+        private: no
+      - name: minio_endpoint
+        prompt: "Enter MinIO endpoint URL (e.g., http://minio.local:9000)"
+        private: no
+      - name: minio_bucket
+        prompt: "Enter MinIO bucket name"
+        private: no
+      - name: minio_access_key
+        prompt: "Enter MinIO Access Key"
+        private: yes
+      - name: minio_secret_key
+        prompt: "Enter MinIO Secret Key"
+        private: yes
+
+  tasks:
+      - name: Get VM disk path
+        win_shell: |
+            (Get-VMHardDiskDrive -VMName "{{ vm_name }}").Path
+        register: vm_disk_path
+
+      - name: Download mc.exe to temp location
+        win_get_url:
+            url: "https://dl.min.io/client/mc/release/windows-amd64/mc.exe"
+            dest: "C:\\Windows\\Temp\\mc.exe"
+
+      - name: Upload VM disk to MinIO
+        win_shell: |
+            C:\Windows\Temp\mc.exe alias set localminio "{{ minio_endpoint }}" "{{ minio_access_key }}" "{{ minio_secret_key }}" --api s3v4 --insecure
+            C:\Windows\Temp\mc.exe cp --insecure "{{ vm_disk_path.stdout_lines[0] }}" localminio/{{ minio_bucket }}/{{ vm_name }}.vhdx
+      - name: Remove mc.exe after upload
+        win_file:
+            path: "C:\\Windows\\Temp\\mc.exe"
+            state: absent
+
+      - name: Ensure downloads directory exists
+        ansible.builtin.file:
+            path: "./downloads"
+            state: directory
+        delegate_to: localhost
+
+      - name: Configure MinIO alias
+        ansible.builtin.command: >
+            mc alias set localminio {{ minio_endpoint }} '{{ minio_access_key }}' '{{ minio_secret_key }}' --api s3v4 --insecure
+        delegate_to: localhost
+
+      - name: Download VM disk from MinIO
+        ansible.builtin.command: >
+            mc cp --insecure localminio/{{ minio_bucket }}/{{ vm_name }}.vhdx ./downloads/{{ vm_name }}.vhdx
+        delegate_to: localhost
