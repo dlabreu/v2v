@@ -1,16 +1,31 @@
 ---
-- name: Copy VM disk locally on Windows host using win_copy
+- name: Upload VM disk to Object Store (temporary install)
   hosts: hyperv_hosts
   gather_facts: false
 
-  vars_prompt:
-      - name: vm_name
-        prompt: "Enter the name of the VM whose disk you want to copy"
-        private: no
+  #  vars_prompt:
+  #       - name: vm_name
+  #         prompt: "Enter the name of the VM to upload"
+  #         private: no
+  #       - name: object_store_endpoint
+  #         prompt: "Enter Object Store endpoint URL (e.g., http://Object Store.local:9000)"
+  #         private: no
+  #       - name: object_store_bucket
+  #         prompt: "Enter Object Store bucket name"
+  #         private: no
+  #       - name: object_store_access_key
+  #         prompt: "Enter Object Store Access Key"
+  #         private: yes
+  #       - name: object_store_secret_key
+  #         prompt: "Enter Object Store Secret Key"
+  #         private: yes
 
-      - name: base_url
-        prompt: "Enter the base URL of the IIS server"
-        private: no
+  vars:
+      vm_name: "vm01"
+      object_store_endpoint: "http://192.168.22.254:9000"
+      object_store_bucket: "v2v"
+      object_store_access_key: "v2v"
+      object_store_secret_key: "ewk97buu!!@@"
 
   tasks:
       - name: Get VM disk path
@@ -18,14 +33,33 @@
             (Get-VMHardDiskDrive -VMName "{{ vm_name }}").Path
         register: vm_disk_path
 
-      - name: Copy VM disk locally using win_copy
-        ansible.windows.win_copy:
-            src: "{{ vm_disk_path.stdout_lines[0] }}"
-            dest: "C:\\vms\\clone\\{{ vm_name }}.vhdx"
-            remote_src: true
+      - name: Download object store client to temp location
+        win_get_url:
+            url: "https://dl.min.io/client/mc/release/windows-amd64/mc.exe"
+            dest: "C:\\Windows\\Temp\\mc.exe"
 
-      - name: Download VM disk via HTTP
-        ansible.builtin.get_url:
-            url: "{{ base_url }}/{{ vm_name }}.vhdx"
-            dest: "./downloads/{{ vm_name }}.vhdx"
-            mode: "0644"
+      - name: Upload VM disk to object store
+        win_shell: |
+            C:\Windows\Temp\mc.exe alias set objectstore "{{ object_store_endpoint }}" "{{ object_store_access_key }}" "{{ object_store_secret_key }}" --api s3v4 --insecure
+            C:\Windows\Temp\mc.exe cp --insecure "{{ vm_disk_path.stdout_lines[0] }}" objectstore/{{ object_store_bucket }}/{{ vm_name }}.vhdx
+
+      - name: Remove object store client after upload
+        win_file:
+            path: "C:\\Windows\\Temp\\mc.exe"
+            state: absent
+
+      - name: Ensure downloads directory exists for disk conversion
+        ansible.builtin.file:
+            path: "./downloads"
+            state: directory
+        delegate_to: localhost
+
+      - name: Configure object store alias
+        ansible.builtin.command: >
+            mc alias set objectstore {{ object_store_endpoint }} '{{ object_store_access_key }}' '{{ object_store_secret_key }}' --api s3v4 --insecure
+        delegate_to: localhost
+
+      - name: Download VM disk from object store
+        ansible.builtin.command: >
+            mc cp --insecure objectstore/{{ object_store_bucket }}/{{ vm_name }}.vhdx ./downloads/{{ vm_name }}.vhdx
+        delegate_to: localhost
