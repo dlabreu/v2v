@@ -3,29 +3,22 @@
   hosts: hyperv_hosts
   gather_facts: false
 
-  #  vars_prompt:
-  #       - name: vm_name
-  #         prompt: "Enter the name of the VM to upload"
-  #         private: no
-  #       - name: object_store_endpoint
-  #         prompt: "Enter Object Store endpoint URL (e.g., http://Object Store.local:9000)"
-  #         private: no
-  #       - name: object_store_bucket
-  #         prompt: "Enter Object Store bucket name"
-  #         private: no
-  #       - name: object_store_access_key
-  #         prompt: "Enter Object Store Access Key"
-  #         private: yes
-  #       - name: object_store_secret_key
-  #         prompt: "Enter Object Store Secret Key"
-  #         private: yes
-
-  vars:
-      vm_name: "vm01"
-      object_store_endpoint: "http://192.168.22.254:9000"
-      object_store_bucket: "v2v"
-      object_store_access_key: "v2v"
-      object_store_secret_key: "ewk97buu!!@@"
+  vars_prompt:
+      - name: vm_name
+        prompt: "Enter the name of the VM to upload"
+        private: no
+      - name: object_store_endpoint
+        prompt: "Enter Object Store endpoint URL (e.g., http://Object Store.local:9000)"
+        private: no
+      - name: object_store_bucket
+        prompt: "Enter Object Store bucket name"
+        private: no
+      - name: object_store_access_key
+        prompt: "Enter Object Store Access Key"
+        private: yes
+      - name: object_store_secret_key
+        prompt: "Enter Object Store Secret Key"
+        private: yes
 
   tasks:
       - name: Get VM disk path
