@@ -1,0 +1,5 @@
+---
+- name: Run role to set up virtio and infrastructure
+  hosts: hyperv_hosts
+  roles:
+      - permute

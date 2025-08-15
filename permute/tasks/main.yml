@@ -1,0 +1,25 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for permute
+#- name: Include infrastructure setup tasks for localhost
+#  ansible.builtin.include_tasks: infra.yaml
+#  delegate_to: localhost
+- name: Infrastructure setup tasks
+  block:
+      - name: Run infrastructure setup on localhost
+        ansible.builtin.import_tasks: infra.yaml
+  delegate_to: localhost
+  become: true
+
+- name: Run export tasks on the remote host (Windows)
+  block:
+      - name: Run export tasks
+        ansible.builtin.import_tasks: export.yaml
+  become: false
+
+- name: Run convet tasks on local host (Linux/Container)
+  block:
+      - name: Run export tasks
+        ansible.builtin.import_tasks: convert.yaml
+  delegate_to: localhost
+  become: true

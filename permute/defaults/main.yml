@@ -1,0 +1,31 @@
+---
+# defaults file for permute
+
+# virtio iso image location
+virtio_iso_url: "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win.iso"
+
+# Paths for the directories that will be created.
+# virtio mount point for iso image
+virtio_mount_path: "/mnt/drivers"
+# location where iso image or any other tools will be store for run time
+tools_path: "/mnt/tools"
+iso_dest_path: "{{ tools_path }}/virtio.iso"
+# location where the vmdx will be stored for convertion
+input_path: "/mnt/in"
+# location where the qcow2 disk will be store after convertion
+output_path: "/mnt/out"
+
+# A list of packages to install to be able to convert images
+infrastructure_packages:
+    - virt-v2v
+    - libguestfs-tools
+
+# Virtual Machine name to be converted
+vm_name: "YOUR VM NAME"
+# Objectstore endpoint
+object_store_endpoint: "YOUR OBJECT STORE ENDPOINT"
+# Objectstore Bucket
+object_store_bucket: "BUCKET NAME"
+# Objectstore credentails
+object_store_access_key: "ACCESS KEY"
+object_store_secret_key: "SECRET KEY"

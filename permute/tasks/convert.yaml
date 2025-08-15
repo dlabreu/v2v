@@ -1,0 +1,13 @@
+- name: Register the VM source disk path
+  ansible.builtin.set_fact:
+      vm_source_disk: "{{ input_path }}/{{ vm_name }}.vhdx"
+
+- name: Convert
+  ansible.builtin.command:
+      cmd: "virt-v2v -i disk {{ vm_source_disk }} -o local -of qcow2 -os {{ output_path }} -on {{ vm_name }}.qcow2"
+  environment:
+      VIRTIO_WIN: "{{ virtio_mount_path }}"
+  args:
+      chdir: "{{ input_path }}"
+  register: virt_v2v_result
+  delegate_to: localhost
