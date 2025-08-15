@@ -1,4 +1,0 @@
-vm00 | State: 3 | CPU: 1 | Memory: 0 MB | Disk: 20,0 GB
-vm01 | State: 3 | CPU: 1 | Memory: 0 MB | Disk: 20,0 GB
-vm02 | State: 2 | CPU: 1 | Memory: 2048 MB | Disk: 20,0 GB
-vm03 | State: 2 | CPU: 2 | Memory: 4096 MB | Disk: 40,0 GB
