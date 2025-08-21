@@ -1,0 +1,44 @@
+- name: Install required infrastructure packages
+  ansible.builtin.package:
+      name: "{{ item }}"
+      state: present
+  loop: "{{ infrastructure_packages }}"
+
+- name: Create the virtio directory for monted drivers
+  ansible.builtin.file:
+      path: "{{ virtio_mount_path }}"
+      state: directory
+      mode: "0777"
+  ignore_errors: yes
+
+- name: Create the download directory
+  ansible.builtin.file:
+      path: "{{ tools_path }}"
+      state: directory
+      mode: "0777"
+
+- name: Create the input directory
+  ansible.builtin.file:
+      path: "{{ input_path }}"
+      state: directory
+      mode: "0777"
+
+- name: Create the output directory
+  ansible.builtin.file:
+      path: "{{ output_path }}"
+      state: directory
+      mode: "0777"
+
+- name: Download the virtio.iso
+  ansible.builtin.get_url:
+      url: "{{ virtio_iso_url }}"
+      dest: "{{ iso_dest_path }}"
+      mode: "0777"
+
+- name: Mount the virtio.iso
+  ansible.posix.mount:
+      src: "{{ iso_dest_path }}"
+      path: "{{ virtio_mount_path }}"
+      fstype: iso9660
+      state: mounted
+  ignore_errors: yes

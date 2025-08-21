@@ -1,0 +1,30 @@
+---
+- name: Get VM disk path
+  win_shell: |
+      (Get-VMHardDiskDrive -VMName "{{ vm_name }}").Path
+  register: vm_disk_path
+
+- name: Download object store client to temp location
+  win_get_url:
+      url: "https://dl.min.io/client/mc/release/windows-amd64/mc.exe"
+      dest: "C:\\Windows\\Temp\\mc.exe"
+
+- name: Upload VM disk to object store
+  win_shell: |
+      C:\Windows\Temp\mc.exe alias set objectstore "{{ object_store_endpoint }}" "{{ object_store_access_key }}" "{{ object_store_secret_key }}" --api s3v4 --insecure
+      C:\Windows\Temp\mc.exe cp --insecure "{{ vm_disk_path.stdout_lines[0] }}" objectstore/{{ object_store_bucket }}/{{ vm_name }}.vhdx
+
+- name: Remove object store client after upload
+  win_file:
+      path: "C:\\Windows\\Temp\\mc.exe"
+      state: absent
+
+- name: Configure object store alias
+  ansible.builtin.command: >
+      mc alias set objectstore {{ object_store_endpoint }} '{{ object_store_access_key }}' '{{ object_store_secret_key }}' --api s3v4 --insecure
+  delegate_to: localhost
+
+- name: Download VM disk from object store
+  ansible.builtin.command: >
+      mc cp --insecure objectstore/{{ object_store_bucket }}/{{ vm_name }}.vhdx {{ input_path }}/{{ vm_name }}.vhdx
+  delegate_to: localhost

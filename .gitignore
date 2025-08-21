@@ -1,0 +1,60 @@
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external disks
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Python virtual environment
+.venv/
+env/
+venv/
+
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Ansible specific
+.ansible/
+*.retry
+*.vault # If you store vault files directly in the repo (not recommended for production)
+
+# Editor/IDE specific files
+.idea/        # IntelliJ IDEA
+.vscode/      # VS Code
+*.swp         # Vim swap files
+*~            # Emacs backup files
+
+# Container related
+# Ignore Docker/Podman build contexts or generated files
+# If you have specific build directories, add them here.
+# For example, if you copy files into a 'build' directory before containerizing:
+# build/
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+tmp/
+
+# Sensitive files (if not managed by proper secrets management)
+# It's generally better to use Ansible Vault and keep vault files out of git,
+# or use external secrets management (e.g., HashiCorp Vault, Kubernetes Secrets).
+# If you must have them, ensure they are encrypted and consider ignoring them
+# if they contain unencrypted sensitive data during development.
+# vault.yml
+# *.key
+
+# Generated inventory files (if dynamically generated and not meant for repo)
+# inventory.ini.generated
+
+# Any output directories for playbooks that generate files
+# output/
